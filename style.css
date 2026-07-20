@@ -1,0 +1,53 @@
+body { font-family: 'Comic Sans MS', 'Microsoft JhengHei', sans-serif; background-color: #f0f8ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.container { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
+h1 { color: #ff6b6b; margin-top: 0;}
+
+.player-info { margin-bottom: 15px; }
+.player-info input { padding: 8px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 40%;}
+.player-info button { padding: 8px 15px; font-size: 16px; cursor: pointer; border-radius: 5px; border:none; background:#74b9ff; color:white; font-weight:bold;}
+
+.settings { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 16px; border: 2px dashed #dfe6e9; }
+.settings input[type="number"] { width: 60px; padding: 5px; text-align: center; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+.toggle-setting { margin-top: 10px; font-weight: bold; color: #d63031; cursor: pointer;}
+.toggle-setting input { width: 18px; height: 18px; cursor: pointer; }
+
+.upload-area { margin-top: 10px; font-size: 14px; margin-bottom: 20px;}
+.upload-btn { background-color: #f39c12; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; display: inline-block; transition: transform 0.1s; font-weight: bold; }
+.upload-btn:active { transform: scale(0.95); }
+.upload-status { margin-top: 5px; color: #2d3436; font-weight: bold; }
+
+.stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: bold; font-size: 18px; color: #4eca30; }
+#bossBtn { background-color: #8a2be2; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; animation: pulse 1.5s infinite; }
+#exportBtn { background-color: #00cec9; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 10px; transition: transform 0.1s; }
+#exportBtn:active { transform: scale(0.95); }
+
+.question-box { background-color: #ffeaa7; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+h2 { margin: 0 0 10px 0; color: #2d3436; font-size: 28px; }
+
+/* 👇 新增：例句的排版樣式 👇 */
+.sentence-hint {
+    color: #636e72;
+    font-size: 18px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.6);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px dashed #b2bec3;
+}
+
+.sound-btn { background-color: #0984e3; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 16px; }
+
+.input-area input { font-size: 24px; padding: 10px; width: 60%; border: 2px solid #74b9ff; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+.input-area button { font-size: 20px; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; transition: transform 0.1s; color: white; font-weight: bold; }
+.input-area button:active { transform: scale(0.95); }
+
+#submitBtn { background-color: #ff7675; }
+#nextBtn { background-color: #0984e3; } 
+
+.feedback { font-size: 20px; font-weight: bold; height: 30px; margin-top: 15px;}
+.correct { color: #00b894; }
+.wrong { color: #d63031; }
+
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+p
