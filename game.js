@@ -5,6 +5,28 @@ let bossWordList = [];
 
 const synth = window.speechSynthesis;
 
+// 👇 新增：加權隨機抽題核心函數 👇
+function getWeightedRandomItem(list, getWeightFunc) {
+    let totalWeight = 0;
+    // 1. 計算所有單字的總權重
+    for (let item of list) {
+        totalWeight += getWeightFunc(item);
+    }
+    
+    // 2. 在總權重範圍內抽取一個隨機數字
+    let randomNum = Math.random() * totalWeight;
+    let weightSum = 0;
+    
+    // 3. 依序累加權重，直到超過隨機數字即為抽中該單字
+    for (let item of list) {
+        weightSum += getWeightFunc(item);
+        if (randomNum <= weightSum) {
+            return item;
+        }
+    }
+    return list[list.length - 1]; // 備用回傳，防止意外錯誤
+}
+
 function startGame() {
     currentPlayer = document.getElementById("playerName").value.trim() || "小勇士";
     document.getElementById("gameArea").style.display = "block";
@@ -16,6 +38,10 @@ function startGame() {
 
 function getCombinedWordList() {
     let customWords = JSON.parse(localStorage.getItem(`SpellingHero_CustomWords_${currentPlayer}`)) || [];
+    
+    // 👇 修改：幫自行上傳的自訂單字加上標記，方便後續提高出題權重 👇
+    customWords = customWords.map(word => ({ ...word, isCustom: true }));
+    
     let fullList = wordList.concat(customWords);
     let start = parseInt(document.getElementById("startIdx").value) || 1;
     let end = parseInt(document.getElementById("endIdx").value) || fullList.length;
@@ -43,17 +69,17 @@ function nextQuestion() {
             nextQuestion();
             return;
         }
-        const randomIndex = Math.floor(Math.random() * bossWordList.length);
-        currentWord = bossWordList[randomIndex];
+        // 👇 修改：魔王模式下，錯誤次數 (count) 越高的單字，出題權重與機率就越大 👇
+        currentWord = getWeightedRandomItem(bossWordList, word => word.count);
     } else {
         const combinedList = getCombinedWordList();
-        const randomIndex = Math.floor(Math.random() * combinedList.length);
-        currentWord = combinedList[randomIndex];
+        // 👇 修改：一般模式下，自訂單字 (isCustom) 權重為 3 倍，原本的舊單字為 1 倍 👇
+        currentWord = getWeightedRandomItem(combinedList, word => word.isCustom ? 3 : 1);
     }
 
     document.getElementById("chineseHint").innerText = currentWord.chinese;
     
-    // 👇 新增：例句挖空處理邏輯 👇
+    // 例句挖空處理邏輯
     const sentenceHint = document.getElementById("sentenceHint");
     if (currentWord.sentence) {
         // 取出乾淨的單字用來比對 (過濾 a, an, the, to 跟括號)
@@ -114,7 +140,7 @@ function checkAnswer() {
         }
     }
 
-    // 👇 新增：答題後顯示完整例句，讓小朋友能看著背 👇
+    // 答題後顯示完整例句，讓小朋友能看著背
     if (currentWord.sentence) {
         document.getElementById("sentenceHint").innerText = currentWord.sentence;
     }
@@ -173,7 +199,7 @@ function startBossBattle() {
     nextQuestion();
 }
 
-// 匯出功能新增了例句欄位
+// 匯出功能
 function exportMistakes() {
     let playerRecord = getPlayerRecord();
     let mistakes = Object.values(playerRecord.mistakes);
@@ -196,7 +222,7 @@ function exportMistakes() {
     link.click();
 }
 
-// 👇 新增：安全的 CSV 解析器，保護句子裡的逗號 👇
+// 安全的 CSV 解析器，保護句子裡的逗號
 function parseCSVRow(str) {
     let arr = [], quote = false, cell = '';
     for (let c = 0; c < str.length; c++) {
