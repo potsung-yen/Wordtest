@@ -68,6 +68,80 @@ function getCombinedWordList() {
     return fullList.slice(start - 1, end);
 }
 
+// 🎯 終極升級版：智慧型詞性判斷系統 🎯
+function getDetailedPOS(eng, chi) {
+    let cleanEng = eng.toLowerCase().trim();
+    let cleanChi = chi.trim();
+    
+    // 移除英文中括號內的字 (例如 "you (plural)" 變成 "you")
+    let baseEng = cleanEng.replace(/\([^)]*\)/g, '').trim(); 
+
+    // 0. 特例片語優先攔截
+    const specificPhrases = ["a lot of", "a few", "how many", "how much", "right here", "right there", "over here", "over there"];
+    if (specificPhrases.includes(baseEng)) return "📌[phr. 片語]";
+
+    // 1. Title (稱謂)
+    const titles = ["mr.", "mrs.", "miss", "ms."];
+    if (titles.includes(baseEng)) return "📌[title 稱謂]";
+
+    // 2. Pronoun (代名詞)
+    const pronouns = [
+        "i", "you", "he", "she", "it", "we", "they", 
+        "me", "him", "her", "us", "them", 
+        "my", "your", "his", "its", "our", "their", 
+        "mine", "yours", "hers", "ours", "theirs", 
+        "myself", "yourself", "himself", "herself", "itself", "ourselves", "yourselves", "themselves",
+        "any", "some", "this", "that", "these", "those", "all"
+    ];
+    if (pronouns.includes(baseEng) || cleanChi.match(/^(我|你|妳|他|她|它|牠)(自己|們|的|的\+noun|\(受詞\))?$/) || cleanChi.includes("代名詞")) {
+        return "📌[pron. 代名詞]";
+    }
+
+    // 3. Verb (動詞)
+    if (cleanEng.startsWith("to ") || cleanChi.includes("(動詞)")) return "📌[v. 動詞]";
+    
+    // 4. Adjective (形容詞)
+    if (cleanChi.endsWith("的") && !cleanChi.includes("我的") && !cleanChi.includes("你的")) return "📌[adj. 形容詞]";
+    
+    // 5. Plural Noun (複數名詞)
+    const irregularPlurals = ["pants", "shorts", "glasses", "scissors", "children", "men", "women", "feet", "teeth", "mice"];
+    if (cleanEng.includes("(s)") || cleanChi.includes("(複數)") || cleanChi.includes("們") || cleanEng.includes("plural") || irregularPlurals.includes(baseEng)) {
+        return "📌[pl. 複數名詞]";
+    }
+    
+    // 6. Countable Noun (可數名詞)
+    if (cleanEng.startsWith("a ") || cleanEng.startsWith("an ") || cleanChi.match(/一(個|隻|位|輛|台|件|顆|張|把|頂|條|根|片|間|副|份|架|面|支|本)/)) {
+        return "📌[cn. 可數名詞]";
+    }
+
+    // 7. Uncountable Noun (不可數名詞)
+    const uncountables = ["water", "milk", "juice", "tea", "coffee", "weather", "homework", "money", "time", "music", "art", "math", "science", "history", "hair", "grass", "beef", "pork", "soda", "candy", "ice cream", "pizza", "coke", "iced-tea", "fur", "skin"];
+    let noTheEng = baseEng.replace(/^(the )/i, '').trim();
+    if (uncountables.includes(noTheEng) || cleanChi.includes("(不可數)")) {
+        return "📌[un. 不可數名詞]";
+    }
+
+    // 8. Preposition (介系詞)
+    const preps = ["in", "on", "at", "under", "next to", "from", "with", "before", "after", "about"];
+    if (preps.includes(baseEng)) return "📌[prep. 介系詞]";
+
+    // 9. Adverb (副詞)
+    const advs = ["here", "there", "now", "always", "usually", "often", "sometimes", "seldom", "rarely", "never", "very", "too", "together", "out"];
+    if (advs.includes(baseEng)) return "📌[adv. 副詞]";
+
+    // 10. Conjunction (連接詞)
+    const conjs = ["because", "and", "but", "or", "so"];
+    if (conjs.includes(baseEng)) return "📌[conj. 連接詞]";
+
+    // 11. Phrase (片語)
+    if (cleanEng.includes(" ") && !cleanEng.startsWith("the ")) {
+        return "📌[phr. 片語]";
+    }
+
+    // 12. 預設 fallback
+    return "📌[n. 名詞]"; 
+}
+
 function nextQuestion() {
     const mode = document.querySelector('input[name="gameMode"]:checked').value;
     
@@ -102,7 +176,9 @@ function nextQuestion() {
         currentWord = combinedList[randomIndex];
     }
 
-    document.getElementById("chineseHint").innerText = currentWord.chinese;
+    // 加上詞性標示在中文提示旁邊
+    let posTag = getDetailedPOS(currentWord.english, currentWord.chinese);
+    document.getElementById("chineseHint").innerHTML = `${currentWord.chinese} <span style="font-size: 20px; color: #0984e3; font-weight: bold; margin-left: 10px;">${posTag}</span>`;
     
     const sentenceHint = document.getElementById("sentenceHint");
     if (currentWord.sentence) {
@@ -395,9 +471,11 @@ function openWordSelector() {
             checkbox.checked = true;
         }
         
+        // 呼叫智慧判斷器，加入詞性
+        let tag = getDetailedPOS(word.english, word.chinese);
         let label = document.createElement("label");
         label.htmlFor = "word_cb_" + displayNum;
-        label.innerText = `第 ${displayNum} 題：${word.english} (${word.chinese})`;
+        label.innerHTML = `第 ${displayNum} 題：<span style="color:#0984e3; font-weight:bold;">${tag}</span> <b>${word.english}</b> (${word.chinese})`;
         
         div.appendChild(checkbox);
         div.appendChild(label);
