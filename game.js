@@ -68,78 +68,52 @@ function getCombinedWordList() {
     return fullList.slice(start - 1, end);
 }
 
-// 🎯 終極升級版：智慧型詞性判斷系統 🎯
+// 🎯 完美升級版：支援複合詞性與片語自動標示 (例如 cn. + phr.) 🎯
 function getDetailedPOS(eng, chi) {
     let cleanEng = eng.toLowerCase().trim();
     let cleanChi = chi.trim();
-    
-    // 移除英文中括號內的字 (例如 "you (plural)" 變成 "you")
     let baseEng = cleanEng.replace(/\([^)]*\)/g, '').trim(); 
 
-    // 0. 特例片語優先攔截
-    const specificPhrases = ["a lot of", "a few", "how many", "how much", "right here", "right there", "over here", "over there"];
-    if (specificPhrases.includes(baseEng)) return "📌[phr. 片語]";
+    let posResult = "";
 
-    // 1. Title (稱謂)
-    const titles = ["mr.", "mrs.", "miss", "ms."];
-    if (titles.includes(baseEng)) return "📌[title 稱謂]";
-
-    // 2. Pronoun (代名詞)
-    const pronouns = [
-        "i", "you", "he", "she", "it", "we", "they", 
-        "me", "him", "her", "us", "them", 
-        "my", "your", "his", "its", "our", "their", 
-        "mine", "yours", "hers", "ours", "theirs", 
-        "myself", "yourself", "himself", "herself", "itself", "ourselves", "yourselves", "themselves",
-        "any", "some", "this", "that", "these", "those", "all"
-    ];
-    if (pronouns.includes(baseEng) || cleanChi.match(/^(我|你|妳|他|她|它|牠)(自己|們|的|的\+noun|\(受詞\))?$/) || cleanChi.includes("代名詞")) {
-        return "📌[pron. 代名詞]";
+    // 1. 判斷基礎詞性
+    if (baseEng.startsWith("to ") || cleanChi.includes("(動詞)")) {
+        posResult = "v. 動詞";
+    } else if (cleanChi.endsWith("的") && !cleanChi.includes("我的") && !cleanChi.includes("你的")) {
+        posResult = "adj. 形容詞";
+    } else {
+        const irregularPlurals = ["pants", "shorts", "glasses", "scissors", "children", "men", "women", "feet", "teeth", "mice"];
+        if (cleanEng.includes("(s)") || cleanChi.includes("(複數)") || cleanChi.includes("們") || irregularPlurals.includes(baseEng)) {
+            posResult = "pl. 複數名詞";
+        } else if (baseEng.startsWith("a ") || baseEng.startsWith("an ") || cleanChi.match(/一(個|隻|位|輛|台|件|顆|張|把|頂|條|根|片|間|副|份|架|面|支|本)/)) {
+            posResult = "cn. 可數名詞";
+        } else {
+            const uncountables = ["water", "milk", "juice", "tea", "coffee", "weather", "homework", "money", "time", "music", "art", "math", "science", "history", "hair", "grass", "beef", "pork", "soda", "candy", "ice cream", "pizza", "coke", "iced-tea", "fur", "skin"];
+            if (uncountables.includes(baseEng.replace(/^(the )/i, '')) || cleanChi.includes("(不可數)")) {
+                posResult = "un. 不可數名詞";
+            } else if (["in", "on", "at", "under", "next to", "from", "with", "before", "after", "about"].includes(baseEng)) {
+                posResult = "prep. 介系詞";
+            } else if (["here", "there", "now", "always", "usually", "often", "sometimes", "seldom", "rarely", "never", "very", "too", "together", "out"].includes(baseEng)) {
+                posResult = "adv. 副詞";
+            } else if (["because", "and", "but", "or", "so"].includes(baseEng)) {
+                posResult = "conj. 連接詞";
+            } else {
+                posResult = "n. 名詞";
+            }
+        }
     }
 
-    // 3. Verb (動詞)
-    if (cleanEng.startsWith("to ") || cleanChi.includes("(動詞)")) return "📌[v. 動詞]";
+    // 2. 複合判定：如果是片語 (多個字組成，例如 an only child, on my way, a lot of)，自動加上 phr.
+    // 排除掉原本就帶有 a/an/to 的基本單字
+    let isMultiWord = baseEng.includes(" ") && !baseEng.startsWith("to ") && !baseEng.startsWith("a ") && !baseEng.startsWith("an ");
+    const specificPhrases = ["a lot of", "a few", "how many", "how much", "right here", "right there", "over here", "over there", "an only child", "on my way", "to pick up", "to put down", "table tennis", "video game", "chinese checkers"];
     
-    // 4. Adjective (形容詞)
-    if (cleanChi.endsWith("的") && !cleanChi.includes("我的") && !cleanChi.includes("你的")) return "📌[adj. 形容詞]";
-    
-    // 5. Plural Noun (複數名詞)
-    const irregularPlurals = ["pants", "shorts", "glasses", "scissors", "children", "men", "women", "feet", "teeth", "mice"];
-    if (cleanEng.includes("(s)") || cleanChi.includes("(複數)") || cleanChi.includes("們") || cleanEng.includes("plural") || irregularPlurals.includes(baseEng)) {
-        return "📌[pl. 複數名詞]";
-    }
-    
-    // 6. Countable Noun (可數名詞)
-    if (cleanEng.startsWith("a ") || cleanEng.startsWith("an ") || cleanChi.match(/一(個|隻|位|輛|台|件|顆|張|把|頂|條|根|片|間|副|份|架|面|支|本)/)) {
-        return "📌[cn. 可數名詞]";
+    if (isMultiWord || specificPhrases.includes(baseEng)) {
+        // 如果原本是可數名詞，結合成 "cn. / phr."
+        posResult = posResult + " / phr. 片語";
     }
 
-    // 7. Uncountable Noun (不可數名詞)
-    const uncountables = ["water", "milk", "juice", "tea", "coffee", "weather", "homework", "money", "time", "music", "art", "math", "science", "history", "hair", "grass", "beef", "pork", "soda", "candy", "ice cream", "pizza", "coke", "iced-tea", "fur", "skin"];
-    let noTheEng = baseEng.replace(/^(the )/i, '').trim();
-    if (uncountables.includes(noTheEng) || cleanChi.includes("(不可數)")) {
-        return "📌[un. 不可數名詞]";
-    }
-
-    // 8. Preposition (介系詞)
-    const preps = ["in", "on", "at", "under", "next to", "from", "with", "before", "after", "about"];
-    if (preps.includes(baseEng)) return "📌[prep. 介系詞]";
-
-    // 9. Adverb (副詞)
-    const advs = ["here", "there", "now", "always", "usually", "often", "sometimes", "seldom", "rarely", "never", "very", "too", "together", "out"];
-    if (advs.includes(baseEng)) return "📌[adv. 副詞]";
-
-    // 10. Conjunction (連接詞)
-    const conjs = ["because", "and", "but", "or", "so"];
-    if (conjs.includes(baseEng)) return "📌[conj. 連接詞]";
-
-    // 11. Phrase (片語)
-    if (cleanEng.includes(" ") && !cleanEng.startsWith("the ")) {
-        return "📌[phr. 片語]";
-    }
-
-    // 12. 預設 fallback
-    return "📌[n. 名詞]"; 
+    return `📌[${posResult}]`;
 }
 
 function nextQuestion() {
@@ -176,9 +150,8 @@ function nextQuestion() {
         currentWord = combinedList[randomIndex];
     }
 
-    // 加上詞性標示在中文提示旁邊
     let posTag = getDetailedPOS(currentWord.english, currentWord.chinese);
-    document.getElementById("chineseHint").innerHTML = `${currentWord.chinese} <span style="font-size: 20px; color: #0984e3; font-weight: bold; margin-left: 10px;">${posTag}</span>`;
+    document.getElementById("chineseHint").innerHTML = `${currentWord.chinese} <span style="font-size: 18px; color: #0984e3; font-weight: bold; margin-left: 10px;">${posTag}</span>`;
     
     const sentenceHint = document.getElementById("sentenceHint");
     if (currentWord.sentence) {
@@ -349,19 +322,24 @@ function startBossBattle() {
     nextQuestion();
 }
 
+// 📥 下載錯題本 (完整呈現乾淨的詞性與完整例句)
 function exportMistakes() {
     let playerRecord = getPlayerRecord();
     let mistakes = Object.values(playerRecord.mistakes);
     if (mistakes.length === 0) { alert("🎉 太棒了！目前沒有常錯單字喔！"); return; }
     
-    let csvContent = "\uFEFF英文單字,中文意思,例句,錯誤次數\n";
+    let csvContent = "\uFEFF英文單字,詞性,中文意思,例句,錯誤次數\n";
     mistakes.sort((a, b) => b.count - a.count);
     
     mistakes.forEach(word => {
+        let tag = getDetailedPOS(word.english, word.chinese).replace("📌", "").trim();
+        
         let safeEnglish = `"${word.english}"`;
+        let safeTag = `"${tag}"`;
         let safeChinese = `"${word.chinese}"`;
-        let safeSentence = word.sentence ? `"${word.sentence}"` : `""`;
-        csvContent += `${safeEnglish},${safeChinese},${safeSentence},${word.count}\n`;
+        let safeSentence = word.sentence ? `"${word.sentence.replace(/"/g, '""')}"` : `""`; // 防止引號造成 CSV 跑版
+        
+        csvContent += `${safeEnglish},${safeTag},${safeChinese},${safeSentence},${word.count}\n`;
     });
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -393,15 +371,27 @@ function handleFileUpload(event) {
         const rows = text.split('\n');
         let newWords = [];
         
+        let engIdx = 0, chiIdx = 1, senIdx = 2; 
+        
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i].trim();
             if (!row) continue;
             
             const cols = parseCSVRow(row);
+            
+            if (i === 0 && cols.includes("英文單字")) {
+                engIdx = cols.indexOf("英文單字");
+                chiIdx = cols.indexOf("中文意思");
+                let sIdx = cols.indexOf("例句");
+                if(sIdx !== -1) senIdx = sIdx;
+                continue;
+            }
+            
             if (cols.length >= 2) {
-                let eng = cols[0].trim();
-                let chi = cols[1].trim();
-                let sen = cols[2] ? cols[2].trim() : ""; 
+                let eng = cols[engIdx] ? cols[engIdx].trim() : "";
+                let chi = cols[chiIdx] ? cols[chiIdx].trim() : "";
+                let sen = cols[senIdx] ? cols[senIdx].trim() : ""; 
+                
                 if (eng && chi && eng !== "英文單字" && eng !== "english") {
                     newWords.push({ english: eng, chinese: chi, sentence: sen });
                 }
@@ -452,7 +442,7 @@ function openWordSelector() {
             } else {
                 let val = parseInt(part);
                 if (!isNaN(val)) selectedIndices.add(val);
-            }
+                }
         }
     }
 
@@ -471,7 +461,6 @@ function openWordSelector() {
             checkbox.checked = true;
         }
         
-        // 呼叫智慧判斷器，加入詞性
         let tag = getDetailedPOS(word.english, word.chinese);
         let label = document.createElement("label");
         label.htmlFor = "word_cb_" + displayNum;
