@@ -68,7 +68,7 @@ function getCombinedWordList() {
     return fullList.slice(start - 1, end);
 }
 
-// 🎯 完美升級版：支援複合詞性與片語自動標示 (例如 cn. + phr.) 🎯
+// 🎯 支援複合詞性與片語自動標示 (例如 cn. + phr.) 🎯
 function getDetailedPOS(eng, chi) {
     let cleanEng = eng.toLowerCase().trim();
     let cleanChi = chi.trim();
@@ -103,13 +103,11 @@ function getDetailedPOS(eng, chi) {
         }
     }
 
-    // 2. 複合判定：如果是片語 (多個字組成，例如 an only child, on my way, a lot of)，自動加上 phr.
-    // 排除掉原本就帶有 a/an/to 的基本單字
+    // 2. 複合判定：如果是片語 (多個字組成)
     let isMultiWord = baseEng.includes(" ") && !baseEng.startsWith("to ") && !baseEng.startsWith("a ") && !baseEng.startsWith("an ");
     const specificPhrases = ["a lot of", "a few", "how many", "how much", "right here", "right there", "over here", "over there", "an only child", "on my way", "to pick up", "to put down", "table tennis", "video game", "chinese checkers"];
     
     if (isMultiWord || specificPhrases.includes(baseEng)) {
-        // 如果原本是可數名詞，結合成 "cn. / phr."
         posResult = posResult + " / phr. 片語";
     }
 
@@ -195,13 +193,45 @@ function renderChoiceOptions() {
     });
 }
 
+// 🔊 方案二：瀏覽器內建高階 AI 真人語音引擎 (Neural / Natural 智慧選取 + 慢速帶讀)
 function speakWord() {
-    if (synth.speaking) { return; }
+    if (!synth) return;
+    
+    if (synth.speaking) {
+        synth.cancel();
+    }
+
     let textToSpeak = currentWord.english.replace(/^(a |an |the |to )/i, '').replace(/\([^)]*\)/g, '').trim();
+    
     const utterThis = new SpeechSynthesisUtterance(textToSpeak);
     utterThis.lang = 'en-US'; 
-    utterThis.rate = 0.8;     
+    utterThis.rate = 0.85; // 稍微放慢，營造真人老師帶讀感
+    utterThis.pitch = 1.0;     
+
+    let voices = synth.getVoices();
+    let bestVoice = voices.find(v => v.lang === 'en-US' && (
+        v.name.includes('Natural') || 
+        v.name.includes('Neural') || 
+        v.name.includes('Google US English') || 
+        v.name.includes('Samantha')
+    ));
+
+    if (!bestVoice) {
+        bestVoice = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US');
+    }
+
+    if (bestVoice) {
+        utterThis.voice = bestVoice;
+    }
+
     synth.speak(utterThis);
+}
+
+// 確保語音清單載入完成
+if (typeof synth !== 'undefined' && synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = () => {
+        synth.getVoices();
+    };
 }
 
 function checkAnswer() {
@@ -322,7 +352,7 @@ function startBossBattle() {
     nextQuestion();
 }
 
-// 📥 下載錯題本 (完整呈現乾淨的詞性與完整例句)
+// 📥 下載錯題本
 function exportMistakes() {
     let playerRecord = getPlayerRecord();
     let mistakes = Object.values(playerRecord.mistakes);
@@ -337,7 +367,7 @@ function exportMistakes() {
         let safeEnglish = `"${word.english}"`;
         let safeTag = `"${tag}"`;
         let safeChinese = `"${word.chinese}"`;
-        let safeSentence = word.sentence ? `"${word.sentence.replace(/"/g, '""')}"` : `""`; // 防止引號造成 CSV 跑版
+        let safeSentence = word.sentence ? `"${word.sentence.replace(/"/g, '""')}"` : `""`; 
         
         csvContent += `${safeEnglish},${safeTag},${safeChinese},${safeSentence},${word.count}\n`;
     });
@@ -442,7 +472,7 @@ function openWordSelector() {
             } else {
                 let val = parseInt(part);
                 if (!isNaN(val)) selectedIndices.add(val);
-                }
+            }
         }
     }
 
