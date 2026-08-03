@@ -193,7 +193,7 @@ function renderChoiceOptions() {
     });
 }
 
-// 🔊 方案二：瀏覽器內建高階 AI 真人語音引擎 (Neural / Natural 智慧選取 + 慢速帶讀)
+// 🔊 頂級 AI 真人語音引擎（自動切換為英文男聲 + 慢速帶讀）
 function speakWord() {
     if (!synth) return;
     
@@ -206,14 +206,19 @@ function speakWord() {
     const utterThis = new SpeechSynthesisUtterance(textToSpeak);
     utterThis.lang = 'en-US'; 
     utterThis.rate = 0.85; // 稍微放慢，營造真人老師帶讀感
-    utterThis.pitch = 1.0;     
+    utterThis.pitch = 0.9; // 稍微調降音調，呈現低沉有磁性的男聲
 
     let voices = synth.getVoices();
+    
+    // 優先尋找英文男聲關鍵字或高階自然語音
     let bestVoice = voices.find(v => v.lang === 'en-US' && (
+        v.name.includes('Male') || 
+        v.name.includes('David') || 
+        v.name.includes('Mark') || 
+        v.name.includes('Guy') || 
+        v.name.includes('Steffan') ||
         v.name.includes('Natural') || 
-        v.name.includes('Neural') || 
-        v.name.includes('Google US English') || 
-        v.name.includes('Samantha')
+        v.name.includes('Neural')
     ));
 
     if (!bestVoice) {
