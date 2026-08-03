@@ -3,8 +3,6 @@ let currentWord = {};
 let isBossMode = false;
 let bossWordList = [];
 
-const synth = window.speechSynthesis;
-
 function startGame() {
     currentPlayer = document.getElementById("playerName").value.trim() || "小勇士";
     document.getElementById("gameArea").style.display = "block";
@@ -68,7 +66,7 @@ function getCombinedWordList() {
     return fullList.slice(start - 1, end);
 }
 
-// 🎯 支援複合詞性與片語自動標示 (例如 cn. + phr.) 🎯
+// 🎯 支援複合詞性與片語自動標示 🎯
 function getDetailedPOS(eng, chi) {
     let cleanEng = eng.toLowerCase().trim();
     let cleanChi = chi.trim();
@@ -76,7 +74,6 @@ function getDetailedPOS(eng, chi) {
 
     let posResult = "";
 
-    // 1. 判斷基礎詞性
     if (baseEng.startsWith("to ") || cleanChi.includes("(動詞)")) {
         posResult = "v. 動詞";
     } else if (cleanChi.endsWith("的") && !cleanChi.includes("我的") && !cleanChi.includes("你的")) {
@@ -103,7 +100,6 @@ function getDetailedPOS(eng, chi) {
         }
     }
 
-    // 2. 複合判定：如果是片語 (多個字組成)
     let isMultiWord = baseEng.includes(" ") && !baseEng.startsWith("to ") && !baseEng.startsWith("a ") && !baseEng.startsWith("an ");
     const specificPhrases = ["a lot of", "a few", "how many", "how much", "right here", "right there", "over here", "over there", "an only child", "on my way", "to pick up", "to put down", "table tennis", "video game", "chinese checkers"];
     
@@ -193,50 +189,26 @@ function renderChoiceOptions() {
     });
 }
 
-// 🔊 頂級 AI 真人語音引擎（自動切換為英文男聲 + 慢速帶讀）
+// 🔊 免費 API 語音發音引擎（採用免費雲端語音串流，支援標準發音與自動過濾冠詞）
+let currentAudio = null;
+
 function speakWord() {
-    if (!synth) return;
-    
-    if (synth.speaking) {
-        synth.cancel();
-    }
-
     let textToSpeak = currentWord.english.replace(/^(a |an |the |to )/i, '').replace(/\([^)]*\)/g, '').trim();
-    
-    const utterThis = new SpeechSynthesisUtterance(textToSpeak);
-    utterThis.lang = 'en-US'; 
-    utterThis.rate = 0.85; // 稍微放慢，營造真人老師帶讀感
-    utterThis.pitch = 0.9; // 稍微調降音調，呈現低沉有磁性的男聲
+    if (!textToSpeak) return;
 
-    let voices = synth.getVoices();
-    
-    // 優先尋找英文男聲關鍵字或高階自然語音
-    let bestVoice = voices.find(v => v.lang === 'en-US' && (
-        v.name.includes('Male') || 
-        v.name.includes('David') || 
-        v.name.includes('Mark') || 
-        v.name.includes('Guy') || 
-        v.name.includes('Steffan') ||
-        v.name.includes('Natural') || 
-        v.name.includes('Neural')
-    ));
-
-    if (!bestVoice) {
-        bestVoice = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US');
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
     }
 
-    if (bestVoice) {
-        utterThis.voice = bestVoice;
-    }
+    // 使用完全免費的線上語音 API 產生標準發音
+    const encodedText = encodeURIComponent(textToSpeak);
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=en&client=tw-ob`;
 
-    synth.speak(utterThis);
-}
-
-// 確保語音清單載入完成
-if (typeof synth !== 'undefined' && synth.onvoiceschanged !== undefined) {
-    synth.onvoiceschanged = () => {
-        synth.getVoices();
-    };
+    currentAudio = new Audio(audioUrl);
+    currentAudio.play().catch(error => {
+        console.log("語音播放被瀏覽器阻擋或網路異常：", error);
+    });
 }
 
 function checkAnswer() {
